@@ -24,7 +24,6 @@ export default {
           data: [],
         }],
       },
-      message: 'hello',
     };
   },
   methods: {
@@ -34,11 +33,19 @@ export default {
     },
     refreshData(res) {
       res.sort((a, b) => (a.tweeted_at - b.tweeted_at));
-      const labels = res.map(v => this.labelFormatter(v.tweeted_at));
-      const data = res.map(v => v.weight);
+      const startDate = moment.unix(res[0].tweeted_at);
+      const endDate = moment.unix(res[res.length - 1].tweeted_at);
+      const range = endDate.diff(startDate, 'days') + 1;
+      const labels = [...Array(range).keys()].map(v => startDate.clone().add(v, 'days').toDate());
+      const data = res.map(v => (
+        { t: moment.unix(v.tweeted_at), y: v.weight }
+      ));
       this.chartData = {
         labels,
-        datasets: [{ data }],
+        datasets: [{
+          fill: false,
+          data,
+        }],
       };
     },
     labelFormatter(timestamp) {

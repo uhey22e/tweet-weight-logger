@@ -83,13 +83,13 @@ custom:
 
 functions:
   parse-weight:
-    handler: src/parse-weight/parse_weight.main
+    handler: functions/parse-weight/parse_weight.main
     events:
       - sns: ${self:custom.topics.weight}
     environment:
       TABLE_NAME_WEIGHT_LOG: ${self:custom.tables.weightLog}
   batch-get-tweet:
-    handler: src/batch-get-tweet/batch_get_tweet.main
+    handler: functions/batch-get-tweet/batch_get_tweet.main
     environment:
       TWITTER_CONSUMER_KEY: ${file(./twitter_key.yml):consumerKey}
       TWITTER_CONSUMER_KEY_SECRET: ${file(./twitter_key.yml):consumerKeySecret}
@@ -99,7 +99,7 @@ functions:
       # TWITTER_TARGET_USERID: '974957378373234688'
       TWITTER_TARGET_USERID: '413854985'
   api-weight-log:
-    handler: src/weight-log/weight_log.get
+    handler: functions/weight-log/weight_log.get
     events:
       - http:
           path: weight_log
