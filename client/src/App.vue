@@ -1,26 +1,22 @@
 <template>
   <div id="app">
-    <button v-on:click="get">click here</button>
-    <my-chart :chartData="chartData"></my-chart>
+    <h1>Weight chart</h1>
+    <Chart :chartData="chartData" />
   </div>
 </template>
 
 <script>
-import moment from 'moment'
+import moment from 'moment';
 
-import MyChart from './Chart.js';
-import weight_log from './api/weight_log.js';
-
-// const genRandArr = () => {
-  // return [...Array(12).keys()].map(() => Math.floor(Math.random() * 30));
-// };
+import Chart from './components/Chart';
+import weightLog from './api/weightLog';
 
 export default {
   name: 'app',
-  mounted: function () {
+  mounted() {
     this.get();
   },
-  data: function () {
+  data() {
     return {
       chartData: {
         labels: [],
@@ -32,11 +28,11 @@ export default {
     };
   },
   methods: {
-    get: function () {
-      weight_log.get()
+    get() {
+      weightLog.get()
         .then(this.refreshData);
     },
-    refreshData: function(res) {
+    refreshData(res) {
       res.sort((a, b) => (a.tweeted_at - b.tweeted_at));
       const labels = res.map(v => this.labelFormatter(v.tweeted_at));
       const data = res.map(v => v.weight);
@@ -45,23 +41,23 @@ export default {
         datasets: [{ data }],
       };
     },
-    labelFormatter: function (timestamp) {
+    labelFormatter(timestamp) {
       return moment.unix(timestamp).format('M/DD');
     },
   },
   components: {
-    MyChart,
+    Chart,
   },
-}
+};
 </script>
 
-<style lang="scss">
+<style>
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  // color: #2c3e50;
+  color: #2c3e50;
   margin-top: 60px;
 }
 </style>

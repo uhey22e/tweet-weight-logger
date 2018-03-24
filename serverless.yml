@@ -96,7 +96,8 @@ functions:
       TWITTER_ACCESS_TOKEN: ${file(./twitter_key.yml):accessToken}
       TWITTER_ACCESS_TOKEN_SECRET: ${file(./twitter_key.yml):accessTokenSecret}
       WEIGHT_SNS_ARN: ${self:custom.topics.weightArn}
-      TWITTER_TARGET_USERID: '974957378373234688'
+      # TWITTER_TARGET_USERID: '974957378373234688'
+      TWITTER_TARGET_USERID: '413854985'
   api-weight-log:
     handler: src/weight-log/weight_log.get
     events:
