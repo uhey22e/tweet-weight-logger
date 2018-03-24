@@ -1,0 +1,165 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: tweet-weight-logger
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: dev
+  region: ap-northeast-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+        - sns:Subscribe
+      Resource:
+        Fn::Join:
+          - ':'
+          - - 'arn:aws:sns'
+            - Ref: 'AWS::Region'
+            - Ref: 'AWS::AccountId'
+            - ${self:custom.topics.weight}
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:PutItem
+        - dynamodb:BatchWriteItem
+      Resource:
+        Fn::Join:
+          - ':'
+          - - 'arn:aws:dynamodb'
+            - Ref: 'AWS::Region'
+            - Ref: 'AWS::AccountId'
+            - Fn::Join: [ '', ['table/', '${self:custom.tables.weightLog}']]
+
+# you can add packaging information here
+package:
+  exclude:
+    - node_modules/**
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    usePipenv: true
+  topics:
+    weight: ${self:service}-dev-process-weight
+    weightArn:
+      Fn::Join:
+        - ':'
+        - - 'arn:aws:sns'
+          - Ref: 'AWS::Region'
+          - Ref: 'AWS::AccountId'
+          - ${self:custom.topics.weight}
+  tables:
+    processedTweet:
+      Fn::Join:
+        - '-'
+        - - ${self:service}
+          - ${opt:stage, 'dev'}
+          - t-processed-tweet
+    weightLog:
+      Fn::Join:
+        - '-'
+        - - ${self:service}
+          - ${opt:stage, 'dev'}
+          - t-weight-log
+
+functions:
+  parse-weight:
+    handler: src/parse-weight/parse_weight.main
+    events:
+      - sns: ${self:custom.topics.weight}
+    environment:
+      TABLE_NAME_WEIGHT_LOG: ${self:custom.tables.weightLog}
+  batch-get-tweet:
+    handler: src/batch-get-tweet/batch_get_tweet.main
+    environment:
+      TWITTER_CONSUMER_KEY: ${file(./twitter_key.yml):consumerKey}
+      TWITTER_CONSUMER_KEY_SECRET: ${file(./twitter_key.yml):consumerKeySecret}
+      TWITTER_ACCESS_TOKEN: ${file(./twitter_key.yml):accessToken}
+      TWITTER_ACCESS_TOKEN_SECRET: ${file(./twitter_key.yml):accessTokenSecret}
+      WEIGHT_SNS_ARN: ${self:custom.topics.weightArn}
+      TWITTER_TARGET_USERID: '974957378373234688'
+  api-weight-log:
+    handler: src/weight-log/weight_log.get
+    events:
+      - http: GET weight_log
+    environment:
+      TABLE_NAME_WEIGHT_LOG: ${self:custom.tables.weightLog}
+
+resources:
+  Resources:
+    processedTweet:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tables.processedTweet}
+        AttributeDefinitions:
+          -
+            AttributeName: "tweet_id"
+            AttributeType: "N"
+          -
+            AttributeName: "tweeted_at"
+            AttributeType: "N"
+        KeySchema:
+          -
+            AttributeName: "tweet_id"
+            KeyType: "HASH"
+          -
+            AttributeName: "tweeted_at"
+            KeyType: "RANGE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    weightLog:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tables.weightLog}
+        AttributeDefinitions:
+          -
+            AttributeName: "tweet_id"
+            AttributeType: "N"
+          -
+            AttributeName: "tweeted_at"
+            AttributeType: "N"
+        KeySchema:
+          -
+            AttributeName: "tweet_id"
+            KeyType: "HASH"
+          -
+            AttributeName: "tweeted_at"
+            KeyType: "RANGE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    # processWeightTopic:
+      # Type: AWS::SNS::Topic
+      # Properties:
+        # TopicName: ${self:custom.topics.weight}
+    # Elasticsearch:
+      # Type: AWS::Elasticsearch::Domain
+      # Properties:
+        # ElasticsearchClusterConfig:
+          # InstanceCount: "1"
+          # InstanceType: "t2.micro.elasticsearch"
+        # EBSOptions:
+          # EBSEnabled: true
+          # VolumeType: gp2
+          # VolumeSize: 10
+
