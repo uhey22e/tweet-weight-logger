@@ -23,6 +23,7 @@ def get(event, context):
         'body': body,
         'headers': {
             'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
         },
     }
 

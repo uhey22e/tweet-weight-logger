@@ -100,7 +100,10 @@ functions:
   api-weight-log:
     handler: src/weight-log/weight_log.get
     events:
-      - http: GET weight_log
+      - http:
+          path: weight_log
+          method: get
+          cors: true
     environment:
       TABLE_NAME_WEIGHT_LOG: ${self:custom.tables.weightLog}
 
