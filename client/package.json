@@ -10,7 +10,8 @@
     "unit": "cross-env BABEL_ENV=test karma start test/unit/karma.conf.js --single-run",
     "test": "npm run unit",
     "lint": "eslint --ext .js,.vue src test/unit",
-    "build": "node build/build.js"
+    "build": "node build/build.js",
+    "deploy:dev": "s3-deploy './dist/**' --cwd './dist/' --bucket tweet-weight-logger-dev-client --region ap-northeast-1"
   },
   "dependencies": {
     "axios": "^0.18.0",
@@ -68,6 +69,7 @@
     "postcss-loader": "^2.0.8",
     "postcss-url": "^7.2.1",
     "rimraf": "^2.6.0",
+    "s3-deploy": "^0.10.0",
     "semver": "^5.3.0",
     "shelljs": "^0.7.6",
     "sinon": "^4.0.0",

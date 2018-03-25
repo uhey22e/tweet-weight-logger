@@ -11,6 +11,8 @@
 #
 # Happy Coding!
 
+AWSTemplateFormatVersion: 2010-09-09
+
 service: tweet-weight-logger
 
 # You can pin your service to only deploy with a specific Serverless version
@@ -80,6 +82,13 @@ custom:
         - - ${self:service}
           - ${opt:stage, 'dev'}
           - t-weight-log
+  buckets:
+    client:
+      Fn::Join:
+        - '-'
+        - - ${self:service}
+          - ${opt:stage, 'dev'}
+          - client
 
 functions:
   parse-weight:
@@ -152,18 +161,53 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    # Frontend
+    clientBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: PublicRead
+        BucketName: ${self:custom.buckets.client}
+        WebsiteConfiguration:
+          IndexDocument: index.html
+      DeletionPolicy: Retain
+    clientBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: clientBucket
+        PolicyDocument:
+          Statement:
+            - Action: s3:GetObject
+              Effect: Allow
+              Resource:
+                Fn::Join:
+                  - ""
+                  - - "arn:aws:s3:::"
+                    - Ref: clientBucket
+                    - "/*"
+              Principal: "*"
+
+    clientDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Origins:
+            - Id: S3Origin
+              DomainName:
+                Fn::GetAtt: [clientBucket, DomainName]
+              CustomOriginConfig:
+                OriginProtocolPolicy: http-only
+          Enabled: true
+          DefaultRootObject: index.html
+          Comment: 'frontend distribution'
+          DefaultCacheBehavior:
+            TargetOriginId: S3Origin
+            ForwardedValues:
+              QueryString: false
+            ViewerProtocolPolicy: redirect-to-https
+
     # processWeightTopic:
       # Type: AWS::SNS::Topic
       # Properties:
         # TopicName: ${self:custom.topics.weight}
-    # Elasticsearch:
-      # Type: AWS::Elasticsearch::Domain
-      # Properties:
-        # ElasticsearchClusterConfig:
-          # InstanceCount: "1"
-          # InstanceType: "t2.micro.elasticsearch"
-        # EBSOptions:
-          # EBSEnabled: true
-          # VolumeType: gp2
-          # VolumeSize: 10
 
