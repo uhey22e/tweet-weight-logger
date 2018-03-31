@@ -15,6 +15,7 @@ try:
     os.environ['TWITTER_CONSUMER_KEY_SECRET'] = keys['consumerKeySecret']
     os.environ['TWITTER_ACCESS_TOKEN'] = keys['accessToken']
     os.environ['TWITTER_ACCESS_TOKEN_SECRET'] = keys['accessTokenSecret']
+    os.environ['TWITTER_TARGET_USERID'] = '413854985'
 except:
     print('error')
 

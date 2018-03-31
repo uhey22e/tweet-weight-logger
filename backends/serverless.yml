@@ -13,7 +13,7 @@
 
 AWSTemplateFormatVersion: 2010-09-09
 
-service: tweet-weight-logger
+service: tweet-weight-logger-backends
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -38,9 +38,17 @@ provider:
             - ${self:custom.topics.weight}
     - Effect: Allow
       Action:
-        - dynamodb:Scan
-        - dynamodb:PutItem
-        - dynamodb:BatchWriteItem
+        - dynamodb:*
+      Resource:
+        Fn::Join:
+          - ':'
+          - - 'arn:aws:dynamodb'
+            - Ref: 'AWS::Region'
+            - Ref: 'AWS::AccountId'
+            - Fn::Join: [ '', ['table/', '${self:custom.tables.processedTweet}']]
+    - Effect: Allow
+      Action:
+        - dynamodb:*
       Resource:
         Fn::Join:
           - ':'
@@ -70,6 +78,12 @@ custom:
           - Ref: 'AWS::AccountId'
           - ${self:custom.topics.weight}
   tables:
+    loggingTarget:
+      Fn::Join:
+        - '-'
+        - - ${self:service}
+          - ${opt:stage, 'dev'}
+          - m-logging-target
     processedTweet:
       Fn::Join:
         - '-'
@@ -99,6 +113,8 @@ functions:
       TABLE_NAME_WEIGHT_LOG: ${self:custom.tables.weightLog}
   batch-get-tweet:
     handler: functions/batch-get-tweet/batch_get_tweet.main
+    events:
+      - schedule: rate(5 minutes)
     environment:
       TWITTER_CONSUMER_KEY: ${file(./twitter_key.yml):consumerKey}
       TWITTER_CONSUMER_KEY_SECRET: ${file(./twitter_key.yml):consumerKeySecret}
@@ -119,6 +135,27 @@ functions:
 
 resources:
   Resources:
+    loggingTarget:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tables.loggingTarget}
+        AttributeDefinitions:
+          -
+            AttributeName: "tw_user_id"
+            AttributeType: "N"
+          -
+            AttributeName: "created_at"
+            AttributeType: "N"
+        KeySchema:
+          -
+            AttributeName: "tw_user_id"
+            KeyType: "HASH"
+          -
+            AttributeName: "created_at"
+            KeyType: "RANGE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
     processedTweet:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -162,49 +199,49 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
     # Frontend
-    clientBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        AccessControl: PublicRead
-        BucketName: ${self:custom.buckets.client}
-        WebsiteConfiguration:
-          IndexDocument: index.html
-      DeletionPolicy: Retain
-    clientBucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        Bucket:
-          Ref: clientBucket
-        PolicyDocument:
-          Statement:
-            - Action: s3:GetObject
-              Effect: Allow
-              Resource:
-                Fn::Join:
-                  - ""
-                  - - "arn:aws:s3:::"
-                    - Ref: clientBucket
-                    - "/*"
-              Principal: "*"
-
-    clientDistribution:
-      Type: AWS::CloudFront::Distribution
-      Properties:
-        DistributionConfig:
-          Origins:
-            - Id: S3Origin
-              DomainName:
-                Fn::GetAtt: [clientBucket, DomainName]
-              CustomOriginConfig:
-                OriginProtocolPolicy: http-only
-          Enabled: true
-          DefaultRootObject: index.html
-          Comment: 'frontend distribution'
-          DefaultCacheBehavior:
-            TargetOriginId: S3Origin
-            ForwardedValues:
-              QueryString: false
-            ViewerProtocolPolicy: redirect-to-https
+    # clientBucket:
+      # Type: AWS::S3::Bucket
+      # Properties:
+        # AccessControl: PublicRead
+        # BucketName: ${self:custom.buckets.client}
+        # WebsiteConfiguration:
+          # IndexDocument: index.html
+      # DeletionPolicy: Retain
+    # clientBucketPolicy:
+      # Type: AWS::S3::BucketPolicy
+      # Properties:
+        # Bucket:
+          # Ref: clientBucket
+        # PolicyDocument:
+          # Statement:
+            # - Action: s3:GetObject
+              # Effect: Allow
+              # Resource:
+                # Fn::Join:
+                  # - ""
+                  # - - "arn:aws:s3:::"
+                    # - Ref: clientBucket
+                    # - "/*"
+              # Principal: "*"
+    # clientDistribution:
+      # Type: AWS::CloudFront::Distribution
+      # Properties:
+        # DistributionConfig:
+          # Aliases:
+            # - ${file(./domain.yml):frontend}
+          # Origins:
+            # - Id: S3Origin
+              # DomainName:
+                # Fn::GetAtt: [clientBucket, DomainName]
+              # CustomOriginConfig:
+                # OriginProtocolPolicy: http-only
+          # Enabled: true
+          # DefaultRootObject: index.html
+          # DefaultCacheBehavior:
+            # TargetOriginId: S3Origin
+            # ForwardedValues:
+              # QueryString: false
+            # ViewerProtocolPolicy: redirect-to-https
 
     # processWeightTopic:
       # Type: AWS::SNS::Topic

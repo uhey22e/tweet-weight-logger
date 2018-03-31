@@ -37,11 +37,12 @@ def main(event, context):
         return {}
 
     weight_tweets = list(filter(filter_weight_tweet, tweets))
-    print([v['text'] for v in weight_tweets])
 
     if len(weight_tweets) == 0:
         print('no data')
         return {}
+    else:
+        print(f'{len(weight_tweets)} logging tweets found.')
 
     client = boto3.client('sns', region_name='ap-northeast-1')
     request = {

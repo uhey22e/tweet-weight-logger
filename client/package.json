@@ -11,7 +11,7 @@
     "test": "npm run unit",
     "lint": "eslint --ext .js,.vue src test/unit",
     "build": "node build/build.js",
-    "deploy:dev": "s3-deploy './dist/**' --cwd './dist/' --bucket tweet-weight-logger-dev-client --region ap-northeast-1"
+    "deploy:dev": "s3-deploy './dist/**' --cwd './dist/' --bucket tweet-weight-logger-distributions-dev-clientbucket --region ap-northeast-1"
   },
   "dependencies": {
     "axios": "^0.18.0",
